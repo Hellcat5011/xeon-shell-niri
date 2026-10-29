@@ -1,0 +1,248 @@
+pragma Singleton
+import QtQuick
+import QtCore
+import Quickshell.Io
+
+Item {
+    id: root
+
+    // Reference AppInfo so its singleton is constructed when Config.qml
+    // is loaded. With the explicit Settings.location below, this is now
+    // belt-and-braces rather than the load-bearing mechanism.
+    readonly property var _appInfo: AppInfo
+
+    Component.onCompleted: discard()
+
+    Process {
+        id: restartProcess
+        command: [
+            "bash",
+            "-c",
+            "notify-send 'Xeon Shell' 'Applying changes - restarting shell...' -t 2000 -h string:x-canonical-private-synchronous:xeon-restart; setsid bash -c 'sleep 1 && killall qs && sleep 0.3 && qs -c xeon-shell-niri' >/dev/null 2>&1 & disown"
+        ]
+    }
+
+    // Live values — the shell reads these at runtime, and they persist
+    // to ~/.config/Xeon Shell Niri/xeon-shell-niri.conf via Settings{}.
+    property alias wallpaperDir: settings.wallpaperDir
+    property alias wallpaperDaemon: settings.wallpaperDaemon
+    property alias showLockscreenSessionControls: settings.showLockscreenSessionControls
+    property alias lockscreenAlignment: settings.lockscreenAlignment
+    property alias rememberLastUser: settings.rememberLastUser
+    property alias manageIdle: settings.manageIdle
+    property alias idleTimeout: settings.idleTimeout
+    property alias blueLightEnabled: settings.blueLightEnabled
+    property alias blueLightManualOn: settings.blueLightManualOn
+    property alias blueLightMode: settings.blueLightMode
+    // Renamed from blueLightStartTime/EndTime → blueLightNightStart/NightEnd.
+    // Old saved values under the old keys are ignored; new defaults apply.
+    property alias blueLightNightStart: settings.blueLightNightStart
+    property alias blueLightNightEnd: settings.blueLightNightEnd
+    property alias blueLightUseIpLocation: settings.blueLightUseIpLocation
+    property alias blueLightLatitude: settings.blueLightLatitude
+    property alias blueLightLongitude: settings.blueLightLongitude
+    property alias blueLightTransitionMinutes: settings.blueLightTransitionMinutes
+    property alias blueLightDayTemp: settings.blueLightDayTemp
+    property alias blueLightNightTemp: settings.blueLightNightTemp
+    property alias desktopLayout: settings.desktopLayout
+    property alias depthEffectEnabled: settings.depthEffectEnabled
+    property alias depthAutoGenerate: settings.depthAutoGenerate
+    property alias depthPregenerate: settings.depthPregenerate
+    property alias depthThreshold: settings.depthThreshold
+    property alias depthFeather: settings.depthFeather
+    property alias depthDevice: settings.depthDevice
+    property alias globalFont: settings.globalFont
+    property alias windowRadius: settings.windowRadius
+    property alias windowRadiusManual: settings.windowRadiusManual
+    property alias backgroundOpacity: settings.backgroundOpacity
+    property alias matugenScheme: settings.matugenScheme
+    property alias matugenMode: settings.matugenMode
+
+    // Draft values — the Settings UI edits these. They do not affect the
+    // shell's live behavior until save() is called.
+    property string draftWallpaperDir: ""
+    property string draftGlobalFont: ""
+    property string draftWallpaperDaemon: ""
+    property bool   draftShowLockscreenSessionControls: true
+    property string draftLockscreenAlignment: "left"
+    property bool   draftRememberLastUser: false
+    property bool   draftManageIdle: true
+    property int    draftIdleTimeout: 5
+    property bool   draftBlueLightEnabled: false
+    property bool   draftBlueLightManualOn: false
+    property string draftBlueLightMode: "fixed_time"
+    property string draftBlueLightNightStart: "22:00"
+    property string draftBlueLightNightEnd: "06:00"
+    property bool   draftBlueLightUseIpLocation: false
+    property string draftBlueLightLatitude: ""
+    property string draftBlueLightLongitude: ""
+    property int    draftBlueLightTransitionMinutes: 30
+    property int    draftBlueLightDayTemp: 6500
+    property int    draftBlueLightNightTemp: 4500
+    property bool   draftDepthEffectEnabled: false
+    property bool   draftDepthAutoGenerate: true
+    property bool   draftDepthPregenerate: true
+    property int    draftDepthThreshold: 30
+    property int    draftDepthFeather: 8
+    property string draftDepthDevice: "cpu"
+    property int    draftWindowRadius: 24
+    property bool   draftWindowRadiusManual: false
+    property real   draftBackgroundOpacity: 0.65
+    property string draftMatugenScheme: "scheme-smart"
+    property string draftMatugenMode: "smart"
+
+    // True if any draft differs from its corresponding live value.
+    readonly property bool isDirty:
+        draftWallpaperDir !== wallpaperDir ||
+        draftWallpaperDaemon !== wallpaperDaemon ||
+        draftShowLockscreenSessionControls !== showLockscreenSessionControls ||
+        draftLockscreenAlignment !== lockscreenAlignment ||
+        draftRememberLastUser !== rememberLastUser ||
+        draftManageIdle !== manageIdle ||
+        draftIdleTimeout !== idleTimeout ||
+        draftBlueLightEnabled !== blueLightEnabled ||
+        draftBlueLightManualOn !== blueLightManualOn ||
+        draftBlueLightMode !== blueLightMode ||
+        draftBlueLightNightStart !== blueLightNightStart ||
+        draftBlueLightNightEnd !== blueLightNightEnd ||
+        draftBlueLightUseIpLocation !== blueLightUseIpLocation ||
+        draftBlueLightLatitude !== blueLightLatitude ||
+        draftBlueLightLongitude !== blueLightLongitude ||
+        draftBlueLightTransitionMinutes !== blueLightTransitionMinutes ||
+        draftBlueLightDayTemp !== blueLightDayTemp ||
+        draftBlueLightNightTemp !== blueLightNightTemp ||
+        draftDepthEffectEnabled !== depthEffectEnabled ||
+        draftDepthAutoGenerate !== depthAutoGenerate ||
+        draftDepthPregenerate !== depthPregenerate ||
+        draftDepthThreshold !== depthThreshold ||
+        draftDepthFeather !== depthFeather ||
+        draftDepthDevice !== depthDevice ||
+        draftGlobalFont !== globalFont ||
+        draftWindowRadius !== windowRadius ||
+        draftWindowRadiusManual !== windowRadiusManual ||
+        draftBackgroundOpacity !== backgroundOpacity ||
+        draftMatugenScheme !== matugenScheme ||
+        draftMatugenMode !== matugenMode
+
+    function save() {
+        let needsRestart = false;
+        if (draftManageIdle !== manageIdle || draftIdleTimeout !== idleTimeout) {
+            needsRestart = true;
+        }
+
+        wallpaperDir = draftWallpaperDir
+        wallpaperDaemon = draftWallpaperDaemon
+        showLockscreenSessionControls = draftShowLockscreenSessionControls
+        lockscreenAlignment = draftLockscreenAlignment
+        rememberLastUser = draftRememberLastUser
+        manageIdle = draftManageIdle
+        idleTimeout = draftIdleTimeout
+        blueLightEnabled = draftBlueLightEnabled
+        blueLightManualOn = draftBlueLightManualOn
+        blueLightMode = draftBlueLightMode
+        blueLightNightStart = draftBlueLightNightStart
+        blueLightNightEnd = draftBlueLightNightEnd
+        blueLightUseIpLocation = draftBlueLightUseIpLocation
+        blueLightLatitude = draftBlueLightLatitude
+        blueLightLongitude = draftBlueLightLongitude
+        blueLightTransitionMinutes = draftBlueLightTransitionMinutes
+        blueLightDayTemp = draftBlueLightDayTemp
+        blueLightNightTemp = draftBlueLightNightTemp
+        depthEffectEnabled = draftDepthEffectEnabled
+        depthAutoGenerate = draftDepthAutoGenerate
+        depthPregenerate = draftDepthPregenerate
+        depthThreshold = draftDepthThreshold
+        depthFeather = draftDepthFeather
+        depthDevice = draftDepthDevice
+        globalFont = draftGlobalFont
+        windowRadius = draftWindowRadius
+        windowRadiusManual = draftWindowRadiusManual
+        backgroundOpacity = draftBackgroundOpacity
+        matugenScheme = draftMatugenScheme
+        matugenMode = draftMatugenMode
+
+        if (needsRestart) {
+            restartProcess.running = true;
+        }
+    }
+
+    function discard() {
+        draftWallpaperDir = wallpaperDir
+        draftWallpaperDaemon = wallpaperDaemon
+        draftShowLockscreenSessionControls = showLockscreenSessionControls
+        draftLockscreenAlignment = lockscreenAlignment
+        draftRememberLastUser = rememberLastUser
+        draftManageIdle = manageIdle
+        draftIdleTimeout = idleTimeout
+        draftBlueLightEnabled = blueLightEnabled
+        draftBlueLightManualOn = blueLightManualOn
+        draftBlueLightMode = blueLightMode
+        draftBlueLightNightStart = blueLightNightStart
+        draftBlueLightNightEnd = blueLightNightEnd
+        draftBlueLightUseIpLocation = blueLightUseIpLocation
+        draftBlueLightLatitude = blueLightLatitude
+        draftBlueLightLongitude = blueLightLongitude
+        draftBlueLightTransitionMinutes = blueLightTransitionMinutes
+        draftBlueLightDayTemp = blueLightDayTemp
+        draftBlueLightNightTemp = blueLightNightTemp
+        draftDepthEffectEnabled = depthEffectEnabled
+        draftDepthAutoGenerate = depthAutoGenerate
+        draftDepthPregenerate = depthPregenerate
+        draftDepthThreshold = depthThreshold
+        draftDepthFeather = depthFeather
+        draftDepthDevice = depthDevice
+        draftGlobalFont = globalFont
+        draftWindowRadius = windowRadius
+        draftWindowRadiusManual = windowRadiusManual
+        draftBackgroundOpacity = backgroundOpacity
+        draftMatugenScheme = matugenScheme
+        draftMatugenMode = matugenMode
+    }
+
+    Settings {
+        id: settings
+
+        // The explicit path. This is what makes the fix robust: the
+        // QSettings backend uses this directly and never consults
+        // Qt.application.organization or Qt.application.name, so the
+        // path is correct regardless of which property bindings have
+        // fired or which Component.onCompleted handlers have run.
+        location: AppInfo.settingsLocation
+
+        category: "General"
+        property string wallpaperDir: "~/Pictures/Wallpapers"
+        property string wallpaperDaemon: "awww" // 'awww' or 'swww'
+        property bool showLockscreenSessionControls: true
+        property string lockscreenAlignment: "left" // 'left', 'right'
+        property bool rememberLastUser: false
+        property bool manageIdle: true
+        property int idleTimeout: 5
+        property bool blueLightEnabled: false
+        property bool blueLightManualOn: false
+        property string blueLightMode: "fixed_time"
+        // Night-hours semantics: these define when the filter is ACTIVE.
+        // Renamed from blueLightStartTime/EndTime to avoid silently
+        // inverting the schedule for existing configs that stored day hours.
+        property string blueLightNightStart: "22:00"
+        property string blueLightNightEnd: "06:00"
+        property bool blueLightUseIpLocation: false
+        property string blueLightLatitude: ""
+        property string blueLightLongitude: ""
+        property int blueLightTransitionMinutes: 30
+        property int blueLightDayTemp: 6500
+        property int blueLightNightTemp: 4500
+        property string desktopLayout: ""
+        property bool depthEffectEnabled: false
+        property bool depthAutoGenerate: true
+        property bool depthPregenerate: true
+        property int depthThreshold: 30
+        property int depthFeather: 8
+        property string depthDevice: "cpu"
+        property string globalFont: "System Default"
+        property int windowRadius: 24
+        property bool windowRadiusManual: false
+        property real backgroundOpacity: 0.65
+        property string matugenScheme: "scheme-smart"
+        property string matugenMode: "smart"
+    }
+}

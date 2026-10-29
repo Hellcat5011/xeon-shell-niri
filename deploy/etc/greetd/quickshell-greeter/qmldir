@@ -1,0 +1,2 @@
+singleton GreeterState 1.0 GreeterState.qml
+singleton GreeterTheme 1.0 GreeterTheme.qml

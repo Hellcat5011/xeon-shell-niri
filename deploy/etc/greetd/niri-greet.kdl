@@ -1,0 +1,19 @@
+// Minimal niri config for the greetd greeter session.
+// greetd starts niri with this file (see config.toml) and niri launches the
+// Quickshell greeter. When the greeter finishes authenticating it calls
+// `niri msg action quit --skip-confirmation`, which ends this session so
+// greetd can start the real one.
+//
+// Deliberately no keybinds: an empty `binds` block means nobody can open
+// terminals or spawn programs from the login screen. (Switching VTs with
+// Ctrl+Alt+F<n> is handled by niri itself and still works.)
+
+binds {}
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+prefer-no-csd
+
+spawn-at-startup "qs" "-p" "/etc/greetd/quickshell-greeter"

@@ -1,0 +1,66 @@
+// ─────────────────────────────────────────────────────────────────────────
+// Xeon Shell — niri configuration snippet
+//
+// Either paste the parts you want into ~/.config/niri/config.kdl, or keep
+// this file next to your config and pull it in with (niri 25.11+):
+//
+//     include "xeon-shell-niri.kdl"
+//
+// niri refuses to load a config that binds the same key twice. The keys below
+// were chosen to avoid every bind in niri's stock default config, but if your
+// own config already uses one, change whichever you prefer, and run
+// `niri validate` after editing to catch clashes.
+//
+// Everything below is a suggestion; rebind freely. The shell is controlled by
+// `qs -c xeon-shell-niri ipc call <target> <method>` (run
+// `qs -c xeon-shell-niri ipc call help display` for the full list).
+// ─────────────────────────────────────────────────────────────────────────
+
+// Start the shell with niri. (Under niri-session you can instead run it as a
+// systemd user service; either way, start it exactly once.)
+spawn-at-startup "qs" "-c" "xeon-shell-niri"
+
+// Where niri's built-in screenshot UI saves files. Xeon Shell no longer ships
+// its own screenshot tool; niri's (Print / Ctrl+Print / Alt+Print by default)
+// copies to the clipboard AND saves to this path.
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+binds {
+    // ── Shell ────────────────────────────────────────────────────────────
+    Mod+Space         hotkey-overlay-title="App Launcher"        { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "launcher"  "toggle"; }
+    Mod+Alt+W         hotkey-overlay-title="Wallpaper Picker"    { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "wallpaper" "toggle"; }
+    Mod+Alt+V         hotkey-overlay-title="Clipboard History"   { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "clipboard" "toggle"; }
+    Mod+Alt+E         hotkey-overlay-title="Emoji Picker"        { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "emoji"     "toggle"; }
+    Mod+Alt+N         hotkey-overlay-title="Notification Center" { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "notif"     "toggle"; }
+    Mod+Alt+Comma     hotkey-overlay-title="Settings"            { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "settings"  "toggle"; }
+    Mod+Alt+P         hotkey-overlay-title="Power Menu"          { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "power"     "toggle"; }
+    Mod+Alt+Slash     hotkey-overlay-title="Keybind Viewer"      { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "keybinds"  "toggle"; }
+    Mod+Alt+Delete    hotkey-overlay-title="Lock Screen"         { spawn "qs" "-c" "xeon-shell-niri" "ipc" "call" "lock"      "lock"; }
+
+    // ── Recovery ─────────────────────────────────────────────────────────
+    // Restart Quickshell if it crashes while the session is locked. Because of
+    // ext-session-lock-v1 a new client can take over an existing lock.
+    // allow-when-locked is what makes this bind work on the lock screen.
+    Mod+Shift+Escape allow-when-locked=true hotkey-overlay-title=null { spawn-sh "killall qs; qs -c xeon-shell-niri"; }
+
+    // ── Replaces the removed Xeon Shell features (already in niri's default config) ──
+    //   Overview ............ press and release Mod by itself, or the hot corner
+    //   Alt-Tab switcher .... Alt+Tab / Alt+Shift+Tab (niri 25.11+, configure in `recent-windows {}`)
+    //   Screenshots ......... Print = region UI, Ctrl+Print = screen, Alt+Print = window
+    // If your own config removed those, restore them with e.g.:
+    // Mod+O repeat=false { toggle-overview; }
+    // Print       { screenshot; }
+    // Ctrl+Print  { screenshot-screen; }
+    // Alt+Print   { screenshot-window; }
+}
+
+// ── Optional: show the wallpaper in niri's Overview backdrop ───────────────
+// By default the Overview backdrop is a flat colour and background-layer
+// wallpapers zoom out with the workspaces. This puts the wallpaper behind
+// everything instead. Find the exact namespace of your wallpaper daemon with
+// `niri msg layers` (it is usually "awww-daemon" or "swww-daemon").
+//
+// layer-rule {
+//     match namespace="^(awww|swww)-daemon"
+//     place-within-backdrop true
+// }

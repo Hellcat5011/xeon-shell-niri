@@ -37,19 +37,8 @@ PanelWindow {
 
     signal shortcutTriggered(string key)
 
-    // Shortcut key -> IPC target handled in shell.qml
-    readonly property var ipcTargets: ({
-        launcher: "launcher",
-        notifications: "notif",
-        settings: "settings",
-        power: "power"
-    })
-
     function trigger(key) {
         root.shortcutTriggered(key);
-        let target = root.ipcTargets[key];
-        if (!target) return;
-        Quickshell.execDetached(["qs", "-c", "xeon-shell-niri", "ipc", "call", target, "toggle"]);
     }
 
     anchors {

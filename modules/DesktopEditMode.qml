@@ -86,7 +86,8 @@ Scope {
                     sendToBackground: cur[id].sendToBackground === true,
                     hideDate: cur[id].hideDate === true,
                     fontFamily: (typeof cur[id].fontFamily === "string") ? cur[id].fontFamily : "",
-                    shortcuts: DesktopLayout.normalizeShortcuts(cur[id].shortcuts)
+                    shortcuts: DesktopLayout.normalizeShortcuts(cur[id].shortcuts),
+                    vertical: (typeof cur[id].vertical === "boolean") ? cur[id].vertical : false
                 };
             } else {
                 wl[id] = {
@@ -100,7 +101,8 @@ Scope {
                     sendToBackground: false,
                     hideDate: def[id].hideDate === true,
                     fontFamily: "",
-                    shortcuts: DesktopLayout.normalizeShortcuts(def[id].shortcuts)
+                    shortcuts: DesktopLayout.normalizeShortcuts(def[id].shortcuts),
+                    vertical: (typeof def[id].vertical === "boolean") ? def[id].vertical : false
                 };
             }
         }
@@ -181,6 +183,32 @@ Scope {
     function updateWidgetFontFamily(id, val) {
         if (!root.workingLayout[id]) return;
         root.workingLayout[id].fontFamily = val;
+        root.layoutRevision++;
+    }
+
+    // Shortcuts widget: toggle orientation (horizontal / vertical)
+    function updateShortcutsVertical(val) {
+        let sc = root.workingLayout["shortcuts"];
+        if (!sc) return;
+        let curVal = sc.vertical === true;
+        if (curVal === val) return;
+        sc.vertical = val;
+
+        let s = root.primaryScreenSize();
+        let curW = sc.w * s.w;
+        let curH = sc.h * s.h;
+
+        // Swap dimensions if switching orientation so vertical is tall and horizontal is wide
+        if ((val && curW > curH) || (!val && curH > curW)) {
+            let minSize = DesktopLayout.getMinSize("shortcuts");
+            let targetW = Math.max(minSize.width, curH);
+            let targetH = Math.max(minSize.height, curW);
+            sc.w = Math.min(1.0, targetW / s.w);
+            sc.h = Math.min(1.0, targetH / s.h);
+            sc.x = Math.max(0.0, Math.min(1.0 - sc.w, sc.x));
+            sc.y = Math.max(0.0, Math.min(1.0 - sc.h, sc.y));
+        }
+
         root.layoutRevision++;
     }
 
@@ -512,6 +540,7 @@ Scope {
                                     transparentBg: widgetWrapper.widgetData.transparentBg
                                     customFont: widgetWrapper.widgetData.fontFamily
                                     shortcuts: widgetWrapper.widgetData.shortcuts
+                                    vertical: widgetWrapper.widgetData.vertical
                                 }
                             }
 
@@ -596,7 +625,7 @@ Scope {
                                 z: 200
                                 width: 270
                                 height: (widgetId === "clock" || widgetId === "tray") ? 232
-                                      : (widgetId === "shortcuts") ? 262
+                                      : (widgetId === "shortcuts") ? 302
                                       : (widgetId === "analogclock") ? 118 : 180
                                 radius: Theme.radiusSmall
                                 color: Qt.rgba(Theme.inversePrimary.r, Theme.inversePrimary.g, Theme.inversePrimary.b, 0.98)
@@ -805,9 +834,9 @@ Scope {
                                         }
                                     }
 
-                                    // 4a. Orientation (Tray widget only)
+                                    // 4a. Orientation (Tray and Shortcuts widgets)
                                     RowLayout {
-                                        visible: widgetId === "tray"
+                                        visible: widgetId === "tray" || widgetId === "shortcuts"
                                         Layout.fillWidth: true
                                         spacing: 10
 
@@ -845,7 +874,9 @@ Scope {
                                                 ]
 
                                                 delegate: Rectangle {
-                                                    readonly property bool selected: (widgetWrapper.trayRect ? widgetWrapper.trayRect.vertical : false) === modelData.vert
+                                                    readonly property bool selected: widgetId === "tray"
+                                                        ? (widgetWrapper.trayRect ? widgetWrapper.trayRect.vertical : false) === modelData.vert
+                                                        : (widgetWrapper.widgetData.vertical === true) === modelData.vert
                                                     width: 64
                                                     height: 28
                                                     radius: 14
@@ -867,7 +898,9 @@ Scope {
                                                         anchors.fill: parent
                                                         hoverEnabled: true
                                                         cursorShape: Qt.PointingHandCursor
-                                                        onClicked: root.updateTrayVertical(modelData.vert)
+                                                        onClicked: widgetId === "tray"
+                                                            ? root.updateTrayVertical(modelData.vert)
+                                                            : root.updateShortcutsVertical(modelData.vert)
                                                     }
                                                 }
                                             }

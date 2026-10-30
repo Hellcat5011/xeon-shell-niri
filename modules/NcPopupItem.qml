@@ -50,6 +50,7 @@ Item {
         try { return JSON.parse(root.actionsJson).slice(0, 3); } catch (e) { return []; }
     }
     readonly property real fullHeight: card.height + 12     // card + gap
+    readonly property alias cardItem: card
 
     height: Math.round(fullHeight * reveal)
     clip: true
@@ -58,7 +59,7 @@ Item {
     ParallelAnimation {
         id: enterAnim
         NumberAnimation { target: root; property: "reveal"; to: 1; duration: 260; easing.type: Easing.OutCubic }
-        XAnimator       { target: card; to: 10; duration: 380; easing.type: Easing.OutBack; easing.overshoot: 0.9 }
+        NumberAnimation { target: card; property: "x"; to: 10; duration: 380; easing.type: Easing.OutBack; easing.overshoot: 0.9 }
         OpacityAnimator { target: card; to: 1;  duration: 200 }
         onFinished: if (root.phase === "entering") root.phase = "shown"
     }
@@ -66,7 +67,7 @@ Item {
     SequentialAnimation {
         id: leaveAnim
         ParallelAnimation {
-            XAnimator       { target: card; to: -460; duration: 300; easing.type: Easing.InCubic }
+            NumberAnimation { target: card; property: "x"; to: -460; duration: 300; easing.type: Easing.InCubic }
             OpacityAnimator { target: card; to: 0;    duration: 260 }
             SequentialAnimation {
                 PauseAnimation { duration: 160 }

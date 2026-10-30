@@ -19,6 +19,7 @@ Item {
     // The face is always a circle fitted into the widget box and centred in it
     readonly property real size: Math.max(1, Math.min(width, height))
     readonly property real faceRadius: size / 2
+    readonly property alias faceItem: face
     readonly property real cx: width / 2
     readonly property real cy: height / 2
 

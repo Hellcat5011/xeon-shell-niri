@@ -38,6 +38,7 @@ evidence.log
 AGENTS.md
 changes/
 plans/
+to-do
 
 # Process & socket files
 *.pid

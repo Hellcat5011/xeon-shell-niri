@@ -15,6 +15,7 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "osd"
+    BackgroundEffect.blurRegion: blurHelper.region
     exclusiveZone: -1
     color: "transparent"
     anchors { top: true; left: true }
@@ -30,6 +31,32 @@ PanelWindow {
     implicitHeight: Math.max(1, contentH)
     visible: popupModel.count > 0
     mask: Region { item: stack }
+
+    Region {
+        id: popupsBlurRegion
+        Region {
+            item: (rep.count > 0 && rep.itemAt(0)) ? rep.itemAt(0).cardItem : null
+            radius: Config.windowRadius
+        }
+        Region {
+            item: (rep.count > 1 && rep.itemAt(1)) ? rep.itemAt(1).cardItem : null
+            radius: Config.windowRadius
+        }
+        Region {
+            item: (rep.count > 2 && rep.itemAt(2)) ? rep.itemAt(2).cardItem : null
+            radius: Config.windowRadius
+        }
+        Region {
+            item: (rep.count > 3 && rep.itemAt(3)) ? rep.itemAt(3).cardItem : null
+            radius: Config.windowRadius
+        }
+    }
+
+    BlurRegion {
+        id: blurHelper
+        customRegion: popupsBlurRegion
+        active: popupModel.count > 0
+    }
 
     ListModel { id: popupModel }
 

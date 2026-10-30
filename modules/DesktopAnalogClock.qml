@@ -10,7 +10,15 @@ PanelWindow {
     exclusiveZone: -1
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "desktop"
+    BackgroundEffect.blurRegion: blurHelper.region
     color: "transparent"
+
+    BlurRegion {
+        id: blurHelper
+        target: clockContent.faceItem
+        radius: clockContent.faceRadius
+        active: !root.geom.transparentBg
+    }
 
     readonly property var geom: DesktopLayout.getWidgetGeometry("analogclock", DesktopLayout.screenWidth, DesktopLayout.screenHeight)
 
@@ -39,6 +47,7 @@ PanelWindow {
         screenHeight: root.screen ? root.screen.height : DesktopLayout.screenHeight
 
         DesktopAnalogClockContent {
+            id: clockContent
             anchors.fill: parent
             interactive: true
             editMode: false

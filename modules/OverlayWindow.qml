@@ -48,9 +48,29 @@ PanelWindow {
 
     // ---- Wayland layer-shell plumbing ------------------------------------
     WlrLayershell.layer: WlrLayer.Overlay
+    BackgroundEffect.blurRegion: blurHelper.region
     color:     "transparent"
     focusable: root.shown
     anchors { top: true; bottom: true; left: true; right: true }
+
+    BlurRegion {
+        id: blurHelper
+        target: blurProxy
+        radius: root.cardRadius
+        active: root.shown && !root.cardTransparent
+    }
+
+    // Non-transformed proxy Item that explicitly tracks visual bounds of the card
+    // through its scale and translate animations. It has no scale or transform itself,
+    // so Quickshell's Region receives continuous xChanged/yChanged/widthChanged/heightChanged
+    // signals and maps the exact true bounds to the Wayland surface.
+    Item {
+        id: blurProxy
+        x: card.x + cardTranslate.x + (1 - card.scale) * card.width / 2
+        y: card.y + cardTranslate.y + (1 - card.scale) * card.height / 2
+        width: card.width * card.scale
+        height: card.height * card.scale
+    }
 
     // Keep the surface alive long enough for the closing animation to play.
     visible: shown || closingTimer.running
@@ -91,6 +111,7 @@ PanelWindow {
         scale:   root.enterAnimation === "scale" ? (root.shown ? 1 : 0.92) : 1
         
         transform: Translate {
+            id: cardTranslate
             x: {
                 if (!root.shown) {
                     if (root.enterAnimation === "slideLeft") return -card.width - 100;

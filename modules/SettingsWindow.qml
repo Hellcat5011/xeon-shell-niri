@@ -83,7 +83,7 @@ OverlayWindow {
         "Greeter Remember Last User Save the last logged-in user and session to automatically pre-select them on the next boot.",
         "Display Global font Select a global font for the shell and desktop widgets. Manage idle behavior Automatically lock the screen when the system is idle. Lock timeout Time in minutes before the screen is locked. Blue Light Filter Toggle the blue light filter (night light). Turn on now Manually force the blue light filter on. Mode Fixed Time, Sunset/Sunrise Night Schedule Night starts Night ends The filter is active between these times Coordinates Use realtime location based on IP Transition Duration Time in minutes for the color temperature to transition. Day Temperature Color temperature during the day (K). Night Temperature Color temperature at night (K).",
         "Desktop Desktop Edit Mode Reposition, resize, remove and re-add desktop widgets.",
-        "UI Background Opacity Window Rounding Corner radius Manual rounding Set manual pixel number Set the rounding value for the UI Material You Mode Dark Light Smart Material You Scheme Variant Tonal Spot Expressive Fruit Salad Vibrant Rainbow Neutral Fidelity Content Monochrome"
+        "UI Background blur Blur strength Blur the area behind shell windows Background Opacity Window Rounding Corner radius Manual rounding Set manual pixel number Set the rounding value for the UI Material You Mode Dark Light Smart Material You Scheme Variant Tonal Spot Expressive Fruit Salad Vibrant Rainbow Neutral Fidelity Content Monochrome"
     ]
 
     function commitChanges(isFromPopup) {
@@ -279,13 +279,13 @@ OverlayWindow {
                 // Background Card
                 Rectangle {
                     anchors.fill: parent
-                    radius: Theme.radiusLarge
+                    radius: Config.windowRadius
                     color: "black"
                     opacity: 0.25
                 }
                 Rectangle {
                     anchors.fill: parent
-                    radius: Theme.radiusLarge
+                    radius: Config.windowRadius
                     color: "transparent"
                     border.width: 1
                     border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, 0.45)
@@ -1310,6 +1310,87 @@ OverlayWindow {
                                 spacing: 24
                                 visible: tabList.currentIndex === 5
 
+                                // Setting: Background Blur
+                                RowLayout {
+                                    visible: root.fuzzyMatch(searchField.text, "UI Background blur Blur the area behind shell windows")
+                                    Layout.fillWidth: true
+                                    spacing: 16
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 4
+
+                                        Text {
+                                            text: "Background blur"
+                                            color: Theme.onPrimaryContainerColor
+                                            font.pixelSize: 15
+                                            font.weight: Font.Medium
+                                        }
+
+                                        Text {
+                                            text: "Blur the area behind shell windows."
+                                            color: Theme.onPrimaryContainerColor
+                                            opacity: 0.6
+                                            font.pixelSize: 12
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    PillSwitch {
+                                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                                        checked: Config.draftBlurEnabled
+                                        onToggled: (value) => Config.draftBlurEnabled = value
+                                    }
+                                }
+
+                                // Setting: Blur Strength Slider
+                                RowLayout {
+                                    visible: root.fuzzyMatch(searchField.text, "UI Background blur Blur strength")
+                                    Layout.fillWidth: true
+                                    enabled: Config.draftBlurEnabled
+                                    opacity: enabled ? 1.0 : 0.4
+                                    spacing: 16
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 4
+
+                                        Text {
+                                            text: "Blur strength (Level " + Config.draftBlurStrength + ")"
+                                            color: Theme.onPrimaryContainerColor
+                                            font.pixelSize: 15
+                                            font.weight: Font.Medium
+                                        }
+
+                                        Text {
+                                            text: "Adjusts blur strength for all blurred windows in niri."
+                                            color: Theme.onPrimaryContainerColor
+                                            opacity: 0.6
+                                            font.pixelSize: 12
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    Slider {
+                                        id: blurStrengthSlider
+                                        Layout.preferredWidth: 160
+                                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                                        from: 1
+                                        to: 5
+                                        stepSize: 1
+                                        value: Config.draftBlurStrength
+                                        onValueChanged: {
+                                            let lvl = Math.round(value);
+                                            if (Config.draftBlurStrength !== lvl) {
+                                                Config.draftBlurStrength = lvl;
+                                                Config.applyNiriBlur(lvl, false);
+                                            }
+                                        }
+                                    }
+                                }
+
                                 // Setting: Background Opacity Slider
                                 RowLayout {
                                     visible: root.fuzzyMatch(searchField.text, "UI Background Opacity")
@@ -1762,13 +1843,13 @@ OverlayWindow {
 
             Rectangle {
                 anchors.fill: parent
-                radius: Theme.radiusLarge
+                radius: Config.windowRadius
                 color: "black"
                 opacity: 0.25
             }
             Rectangle {
                 anchors.fill: parent
-                radius: Theme.radiusLarge
+                radius: Config.windowRadius
                 color: "transparent"
                 border.width: 1
                 border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, 0.45)

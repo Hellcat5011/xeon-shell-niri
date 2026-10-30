@@ -11,7 +11,15 @@ PanelWindow {
     exclusiveZone: -1
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "desktop"
+    BackgroundEffect.blurRegion: blurHelper.region
     color: "transparent"
+
+    BlurRegion {
+        id: blurHelper
+        target: maskWrapper
+        radius: 10
+        active: !root.geom.transparentBg && root.hasItems
+    }
 
     readonly property int itemCount: SystemTray.items.values.length
     readonly property bool hasItems: itemCount > 0
@@ -35,6 +43,7 @@ PanelWindow {
     visible: root.geom.visible && root.hasItems
 
     DepthMask {
+        id: maskWrapper
         anchors.fill: parent
         enabled: root.geom.sendToBackground === true
         screenX: Math.round(root.geom.x)

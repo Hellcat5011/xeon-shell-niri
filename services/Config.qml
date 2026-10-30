@@ -55,6 +55,8 @@ Item {
     property alias windowRadius: settings.windowRadius
     property alias windowRadiusManual: settings.windowRadiusManual
     property alias backgroundOpacity: settings.backgroundOpacity
+    property alias blurEnabled: settings.blurEnabled
+    property alias blurStrength: settings.blurStrength
     property alias matugenScheme: settings.matugenScheme
     property alias matugenMode: settings.matugenMode
 
@@ -88,6 +90,8 @@ Item {
     property int    draftWindowRadius: 24
     property bool   draftWindowRadiusManual: false
     property real   draftBackgroundOpacity: 0.65
+    property bool   draftBlurEnabled: true
+    property int    draftBlurStrength: 2
     property string draftMatugenScheme: "scheme-smart"
     property string draftMatugenMode: "smart"
 
@@ -121,6 +125,8 @@ Item {
         draftWindowRadius !== windowRadius ||
         draftWindowRadiusManual !== windowRadiusManual ||
         draftBackgroundOpacity !== backgroundOpacity ||
+        draftBlurEnabled !== blurEnabled ||
+        draftBlurStrength !== blurStrength ||
         draftMatugenScheme !== matugenScheme ||
         draftMatugenMode !== matugenMode
 
@@ -158,8 +164,12 @@ Item {
         windowRadius = draftWindowRadius
         windowRadiusManual = draftWindowRadiusManual
         backgroundOpacity = draftBackgroundOpacity
+        blurEnabled = draftBlurEnabled
+        blurStrength = draftBlurStrength
         matugenScheme = draftMatugenScheme
         matugenMode = draftMatugenMode
+
+        applyNiriBlur(blurStrength, true)
 
         if (needsRestart) {
             restartProcess.running = true;
@@ -195,8 +205,57 @@ Item {
         draftWindowRadius = windowRadius
         draftWindowRadiusManual = windowRadiusManual
         draftBackgroundOpacity = backgroundOpacity
+        draftBlurEnabled = blurEnabled
+        draftBlurStrength = blurStrength
         draftMatugenScheme = matugenScheme
         draftMatugenMode = matugenMode
+
+        applyNiriBlur(blurStrength, true)
+    }
+
+    readonly property var blurPresets: [
+        { level: 1, passes: 2, offset: 2.0 },
+        { level: 2, passes: 3, offset: 3.0 },
+        { level: 3, passes: 3, offset: 4.5 },
+        { level: 4, passes: 4, offset: 5.0 },
+        { level: 5, passes: 4, offset: 7.0 }
+    ]
+
+    property int _pendingBlurLevel: 2
+
+    Timer {
+        id: niriBlurDebounceTimer
+        interval: 300
+        repeat: false
+        onTriggered: {
+            root._writeNiriBlurFile(root._pendingBlurLevel)
+        }
+    }
+
+    function applyNiriBlur(level, immediate) {
+        let clamped = Math.max(1, Math.min(5, Math.round(level)))
+        _pendingBlurLevel = clamped
+        if (immediate) {
+            niriBlurDebounceTimer.stop()
+            _writeNiriBlurFile(clamped)
+        } else {
+            niriBlurDebounceTimer.restart()
+        }
+    }
+
+    Process {
+        id: niriBlurWriter
+    }
+
+    function _writeNiriBlurFile(level) {
+        let idx = Math.max(0, Math.min(4, level - 1))
+        let preset = blurPresets[idx]
+        let passes = preset.passes
+        let offset = Number(preset.offset).toFixed(1)
+        let content = "blur {\\n    passes " + passes + "\\n    offset " + offset + "\\n}\\n"
+        let script = "mkdir -p ~/.config/niri/user && printf '" + content + "' > ~/.config/niri/user/shell-blur.kdl"
+        niriBlurWriter.command = ["bash", "-c", script]
+        niriBlurWriter.running = true
     }
 
     Settings {
@@ -242,6 +301,8 @@ Item {
         property int windowRadius: 24
         property bool windowRadiusManual: false
         property real backgroundOpacity: 0.65
+        property bool blurEnabled: true
+        property int blurStrength: 2
         property string matugenScheme: "scheme-smart"
         property string matugenMode: "smart"
     }

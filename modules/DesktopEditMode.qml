@@ -281,6 +281,14 @@ Scope {
             WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.namespace: "desktop-edit-mode"
+            BackgroundEffect.blurRegion: blurHelper.region
+
+            BlurRegion {
+                id: blurHelper
+                target: controlsPanel
+                radius: Theme.radiusSmall
+                active: root.active && overlayWindow.isPrimary
+            }
 
             anchors {
                 top: true

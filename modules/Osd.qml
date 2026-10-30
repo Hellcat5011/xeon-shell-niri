@@ -11,10 +11,26 @@ PanelWindow {
     
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "osd"
+    BackgroundEffect.blurRegion: blurHelper.region
     exclusiveZone: -1
     color: "transparent"
     anchors { bottom: true }
     margins.bottom: 0 // Touch the physical bottom of the screen
+    
+    BlurRegion {
+        id: blurHelper
+        target: blurProxy
+        radius: Theme.radiusSmall
+        active: root.shown
+    }
+
+    Item {
+        id: blurProxy
+        x: card.x
+        y: card.y + cardTranslate.y
+        width: card.width
+        height: card.height
+    }
     
     visible: shown || fadeOutTimer.running
     implicitWidth: 320

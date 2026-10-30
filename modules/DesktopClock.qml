@@ -10,7 +10,15 @@ PanelWindow {
     exclusiveZone: -1
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "desktop"
+    BackgroundEffect.blurRegion: blurHelper.region
     color: "transparent"
+
+    BlurRegion {
+        id: blurHelper
+        target: depthMask
+        radius: 10
+        active: !root.geom.transparentBg
+    }
 
     readonly property real screenW: root.screen ? root.screen.width : DesktopLayout.screenWidth
     readonly property real screenH: root.screen ? root.screen.height : DesktopLayout.screenHeight

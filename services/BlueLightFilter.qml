@@ -9,8 +9,8 @@ Item {
     
     property int currentKelvin: Config.blueLightDayTemp
     property int targetKelvin: Config.blueLightDayTemp
-    property real currentLat: 0
-    property real currentLon: 0
+    property real currentLat: (Config.blueLightLatitude && Config.blueLightLatitude !== "") ? parseFloat(Config.blueLightLatitude) : 0
+    property real currentLon: (Config.blueLightLongitude && Config.blueLightLongitude !== "") ? parseFloat(Config.blueLightLongitude) : 0
 
     // ── Time helpers ──
 
@@ -177,15 +177,17 @@ Item {
             let lat = 0;
             let lon = 0;
             if (Config.blueLightUseIpLocation) {
-                lat = currentLat;
-                lon = currentLon;
+                lat = (currentLat !== 0) ? currentLat : (parseFloat(Config.blueLightLatitude) || 0);
+                lon = (currentLon !== 0) ? currentLon : (parseFloat(Config.blueLightLongitude) || 0);
             } else {
-                lat = parseFloat(Config.blueLightLatitude);
-                lon = parseFloat(Config.blueLightLongitude);
+                lat = parseFloat(Config.blueLightLatitude) || 0;
+                lon = parseFloat(Config.blueLightLongitude) || 0;
             }
             if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) {
                 // Fallback: no valid coordinates. Use fixed-time defaults.
-                console.warn("BlueLightFilter: invalid/missing coordinates, falling back to fixed defaults (22:00–06:00)");
+                if (!(Config.blueLightUseIpLocation && locationProc.running)) {
+                    console.warn("BlueLightFilter: invalid/missing coordinates, falling back to fixed defaults (22:00–06:00)");
+                }
                 let nightStart = parseTimeToMinutes(Config.blueLightNightStart, 22 * 60);
                 let nightEnd   = parseTimeToMinutes(Config.blueLightNightEnd,    6 * 60);
                 let result = computeTemperatureFromTime(currentMins, nightStart, nightEnd, dur, dayTemp, nightTemp);
@@ -347,7 +349,11 @@ Item {
             onRead: data => console.log("gamma-ctl:", data)
         }
         stderr: SplitParser {
-            onRead: data => console.error("gamma-ctl error:", data)
+            onRead: data => {
+                if (data.includes("ERROR")) {
+                    console.error("gamma-ctl error:", data);
+                }
+            }
         }
         
         onStarted: {
@@ -384,14 +390,30 @@ Item {
             onRead: data => {
                 let parts = data.trim().split(",");
                 if (parts.length === 2) {
-                    root.currentLat = parseFloat(parts[0]);
-                    root.currentLon = parseFloat(parts[1]);
-                    let newTarget = computeTarget();
-                    root.targetKelvin = newTarget;
-                    root.currentKelvin = newTarget;
-                    sendTemperature(newTarget);
+                    let lat = parseFloat(parts[0]);
+                    let lon = parseFloat(parts[1]);
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        root.currentLat = lat;
+                        root.currentLon = lon;
+                        let latStr = parts[0].trim();
+                        let lonStr = parts[1].trim();
+                        Config.blueLightLatitude = latStr;
+                        Config.blueLightLongitude = lonStr;
+                        if (Config.draftBlueLightUseIpLocation) {
+                            Config.draftBlueLightLatitude = latStr;
+                            Config.draftBlueLightLongitude = lonStr;
+                        }
+                        console.log("BlueLightFilter: received location coordinates: " + latStr + ", " + lonStr);
+                        let newTarget = computeTarget();
+                        root.targetKelvin = newTarget;
+                        root.currentKelvin = newTarget;
+                        sendTemperature(newTarget);
+                    }
                 }
             }
+        }
+        stderr: SplitParser {
+            onRead: data => console.warn("BlueLightFilter: get-location error:", data)
         }
     }
 

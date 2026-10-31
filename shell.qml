@@ -67,6 +67,7 @@ ShellRoot {
 
     Modules.PowerMenu {
         id: powerMenu
+        onRequestLock: lockscreen.lock()
     }
 
     Modules.DesktopMpris {

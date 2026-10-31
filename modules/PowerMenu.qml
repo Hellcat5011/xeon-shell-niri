@@ -12,7 +12,9 @@ OverlayWindow {
     
     // 70% of screen width
     panelWidth: width > 0 ? width * 0.70 : 1344
-    panelHeight: 340
+    panelHeight: 360
+
+    signal requestLock()
 
     property int selectedIndex: -1
 
@@ -27,7 +29,18 @@ OverlayWindow {
         id: powerProcess
     }
 
+    function triggerLock() {
+        powerMenu.hide()
+        powerMenu.requestLock()
+        powerProcess.command = ["sh", "-c", "qs -p " + Quickshell.shellDir + " ipc call lock lock 2>/dev/null || qs -c xeon-shell-niri ipc call lock lock 2>/dev/null; loginctl lock-session 2>/dev/null || true"]
+        powerProcess.running = true
+    }
+
     function executeCommand(cmd) {
+        if (cmd === "lock") {
+            triggerLock();
+            return;
+        }
         powerProcess.command = ["sh", "-c", cmd]
         powerProcess.running = true
         powerMenu.hide()
@@ -38,6 +51,7 @@ OverlayWindow {
         property string iconSvg
         property string label
         property string command
+        property int iconSize: 128
         property color highlightColor: Qt.rgba(Theme.onPrimaryContainerColor.r, Theme.onPrimaryContainerColor.g, Theme.onPrimaryContainerColor.b, 0.85)
         property color unselectedIconColor: Theme.onPrimaryContainerColor
         property color selectedIconColor: Theme.inversePrimary
@@ -65,22 +79,32 @@ OverlayWindow {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 24
+            spacing: 16
 
-            Image {
+            Item {
                 Layout.alignment: Qt.AlignHCenter
-                sourceSize.width: 128
-                sourceSize.height: 128
-                source: "data:image/svg+xml;utf8," + encodeURIComponent(
-                    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='" + (isSelected ? selectedIconColor : unselectedIconColor) + "' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" + iconSvg + "</svg>"
-                )
+                Layout.preferredWidth: iconSize
+                Layout.preferredHeight: iconSize
+                scale: isSelected ? 1.05 : 1.0
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+
+                Image {
+                    anchors.fill: parent
+                    sourceSize.width: iconSize * 2
+                    sourceSize.height: iconSize * 2
+                    fillMode: Image.PreserveAspectFit
+                    source: "data:image/svg+xml;utf8," + encodeURIComponent(
+                        "<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 24 24' fill='none' stroke='" + (isSelected ? selectedIconColor : unselectedIconColor) + "' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'>" + iconSvg + "</svg>"
+                    )
+                }
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: label
                 color: isSelected ? selectedIconColor : unselectedIconColor
-                font.pixelSize: 24
+                font.family: Theme.globalFont
+                font.pixelSize: 22
                 font.weight: Font.DemiBold
             }
         }
@@ -89,6 +113,7 @@ OverlayWindow {
             id: mArea
             anchors.fill: parent
             hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: powerMenu.executeCommand(command)
         }
     }
@@ -116,7 +141,7 @@ OverlayWindow {
                     powerMenu.executeCommand(buttons[powerMenu.selectedIndex].command);
                 event.accepted = true;
             } else if (event.key === Qt.Key_1 || event.key === Qt.Key_L) {
-                powerMenu.executeCommand("loginctl lock-session");
+                powerMenu.executeCommand("lock");
                 event.accepted = true;
             } else if (event.key === Qt.Key_2 || event.key === Qt.Key_E) {
                 powerMenu.executeCommand("niri msg action quit --skip-confirmation");
@@ -132,14 +157,14 @@ OverlayWindow {
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 40
-            spacing: 40
+            anchors.margins: 36
+            spacing: 32
 
             PowerButton {
                 id: lockBtn
                 index: 0
                 label: "Lock"
-                command: "loginctl lock-session"
+                command: "lock"
                 iconSvg: "<rect x='4' y='10' width='16' height='12' rx='3' ry='3'></rect><path d='M7 10V6a5 5 0 0 1 10 0v4'></path>"
             }
 
